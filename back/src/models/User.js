@@ -21,7 +21,13 @@ const User = sequelize.define("User", {
 
   password: {
     type: DataTypes.STRING,
-    allowNull: false,
+    allowNull: true, // null for OAuth users
+  },
+
+  googleId: {
+    type: DataTypes.STRING,
+    allowNull: true,
+    unique: true,
   },
 
   role: {
