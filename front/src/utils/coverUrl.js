@@ -11,8 +11,8 @@ export const coverUrl = (raw) => {
   if (!raw) return null;
 
   // Strip hardcoded localhost origin so Vite proxy can handle it
-  if (raw.startsWith("http://localhost:6000")) {
-    return raw.replace("http://localhost:6000", "");
+  if (raw.startsWith("http://localhost:5000")) {
+    return raw.replace("http://localhost:5000", "");
   }
 
   return raw;

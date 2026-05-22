@@ -5,7 +5,11 @@ import path from "path"
 import { fileURLToPath } from "url"
 import userRoutes from "./routes/userRoutes.js"
 import bookRoutes from "./routes/bookRoutes.js"
+import borrowRoutes from "./routes/borrowRoutes.js"
+import attendanceRoutes from "./routes/attendanceRoutes.js"
 import upload from "./config/upload.js"
+import uploadId from "./config/uploadId.js"
+import uploadPdf from "./config/uploadPdf.js"
 import passport from "./config/passport.js"
 
 dotenv.config();
@@ -27,15 +31,39 @@ app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
 
 // Cover image upload endpoint
 app.post("/api/upload/cover", upload.single("cover"), (req, res) => {
-  if (!req.file) {
-    return res.status(400).json({ message: "No file uploaded" });
-  }
-  const url = `/uploads/covers/${req.file.filename}`;
-  res.status(200).json({ url });
+  if (!req.file) return res.status(400).json({ message: "No file uploaded" });
+  res.status(200).json({ url: `/uploads/covers/${req.file.filename}` });
 });
+
+// PDF upload endpoint (e-books, theses)
+app.post("/api/upload/pdf", uploadPdf.single("pdf"), (req, res) => {
+  if (!req.file) return res.status(400).json({ message: "No file uploaded" });
+  res.status(200).json({ url: `/uploads/pdfs/${req.file.filename}` });
+});
+
+// ID image upload endpoint (library ID + school ID during registration)
+app.post(
+  "/api/upload/ids",
+  uploadId.fields([
+    { name: "libraryId", maxCount: 1 },
+    { name: "schoolId", maxCount: 1 },
+  ]),
+  (req, res) => {
+    const files = req.files;
+    if (!files?.libraryId && !files?.schoolId) {
+      return res.status(400).json({ message: "No files uploaded" });
+    }
+    res.status(200).json({
+      libraryIdUrl: files.libraryId ? `/uploads/ids/${files.libraryId[0].filename}` : null,
+      schoolIdUrl: files.schoolId ? `/uploads/ids/${files.schoolId[0].filename}` : null,
+    });
+  }
+);
 
 app.use("/api/users", userRoutes);
 app.use("/api/books", bookRoutes);
+app.use("/api/borrows", borrowRoutes);
+app.use("/api/attendance", attendanceRoutes);
 
 app.get("/", (req, res) => {
     res.send("Backend is running");

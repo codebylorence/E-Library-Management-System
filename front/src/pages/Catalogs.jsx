@@ -1,11 +1,13 @@
 import { useState, useEffect, useMemo } from "react";
-import { Search, X, BookOpen, BookMarked } from "lucide-react";
+import { Search, X, BookOpen, AlertTriangle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import CoverImage from "../components/CoverImage";
+import { useAuth } from "../context/AuthContext";
 import axios from "axios";
 
 const Catalogs = () => {
+  const { user } = useAuth();
   const [books, setBooks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -68,6 +70,21 @@ const Catalogs = () => {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+
+        {/* Login gate alert */}
+        {!user && (
+          <div className="flex items-start gap-3 bg-yellow-400 text-yellow-900 rounded-lg px-5 py-4 shadow-sm">
+            <AlertTriangle size={20} className="shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <p className="text-sm font-bold">Login with your CvSU account first!</p>
+              <p className="text-xs mt-1">You need to sign in with your CvSU email to browse the library catalog.</p>
+            </div>
+          </div>
+        )}
+
+        {/* Show content only if logged in */}
+        {user ? (
+          <>
 
         {/* Filters bar */}
         <div className="bg-white rounded-xl shadow-sm p-4 flex flex-wrap items-center gap-3">
@@ -139,13 +156,7 @@ const Catalogs = () => {
 
         {error && (
           <div className="text-center py-16">
-            <p className="text-red-500 mb-4">{error}</p>
-            <button
-              onClick={() => navigate("/login")}
-              className="rounded-lg bg-[#227325] px-5 py-2 text-sm font-semibold text-white hover:opacity-90"
-            >
-              Login to Browse
-            </button>
+            <p className="text-red-500">{error}</p>
           </div>
         )}
 
@@ -203,6 +214,7 @@ const Catalogs = () => {
             )}
           </>
         )}
+        </> ) : null}
       </div>
     </div>
   );

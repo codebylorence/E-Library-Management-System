@@ -16,16 +16,19 @@ const OAuthCallback = () => {
         const user = JSON.parse(decodeURIComponent(userRaw));
         setUserFromOAuth(token, user);
 
+        // Admins and librarians skip profile setup
         if (user.role === "admin" || user.role === "librarian") {
           navigate("/admin/dashboard", { replace: true });
+        } else if (!user.profileComplete) {
+          navigate("/create-profile", { replace: true });
         } else {
           navigate("/student/dashboard", { replace: true });
         }
       } catch {
-        navigate("/login", { replace: true });
+        navigate("/", { replace: true });
       }
     } else {
-      navigate("/login", { replace: true });
+      navigate("/", { replace: true });
     }
   }, []);
 

@@ -33,11 +33,11 @@ router.put(
   updateBook
 );
 
-// DELETE BOOK - admin only
+// DELETE BOOK - admin and librarian
 router.delete(
   "/:id",
   authMiddleware,
-  roleMiddleware("admin"),
+  roleMiddleware("admin", "librarian"),
   deleteBook
 );
 
