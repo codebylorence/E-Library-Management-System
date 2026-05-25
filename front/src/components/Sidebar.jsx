@@ -12,22 +12,25 @@ import {
   BookMarked,
   QrCode,
   ClipboardList,
+  CalendarDays,
 } from "lucide-react";
 
 // Nav items per role
 const NAV_ITEMS = {
   admin: [
-    { label: "Dashboard",  icon: LayoutDashboard, to: "/admin/dashboard"    },
-    { label: "Books",      icon: BookOpen,        to: "/admin/books"        },
-    { label: "Borrows",    icon: BookMarked,      to: "/admin/borrows"      },
-    { label: "Attendance", icon: ClipboardList,   to: "/admin/attendance"   },
-    { label: "Users",      icon: Users,           to: "/admin/users"        },
+    { label: "Dashboard",     icon: LayoutDashboard, to: "/admin/dashboard"      },
+    { label: "Books",         icon: BookOpen,        to: "/admin/books"          },
+    { label: "Borrows",       icon: BookMarked,      to: "/admin/borrows"        },
+    { label: "Attendance",    icon: ClipboardList,   to: "/admin/attendance"     },
+    { label: "Reservations",  icon: CalendarDays,    to: "/admin/reservations"   },
+    { label: "Users",         icon: Users,           to: "/admin/users"          },
   ],
   librarian: [
-    { label: "Dashboard",  icon: LayoutDashboard, to: "/admin/dashboard"    },
-    { label: "Books",      icon: BookOpen,        to: "/admin/books"        },
-    { label: "Borrows",    icon: BookMarked,      to: "/admin/borrows"      },
-    { label: "Attendance", icon: ClipboardList,   to: "/admin/attendance"   },
+    { label: "Dashboard",     icon: LayoutDashboard, to: "/admin/dashboard"      },
+    { label: "Books",         icon: BookOpen,        to: "/admin/books"          },
+    { label: "Borrows",       icon: BookMarked,      to: "/admin/borrows"        },
+    { label: "Attendance",    icon: ClipboardList,   to: "/admin/attendance"     },
+    { label: "Reservations",  icon: CalendarDays,    to: "/admin/reservations"   },
   ],
   student: [
     { label: "Dashboard",  icon: LayoutDashboard, to: "/student/dashboard"  },
@@ -36,10 +39,11 @@ const NAV_ITEMS = {
     { label: "My QR Code", icon: QrCode,          to: "/student/qr"         },
   ],
   faculty: [
-    { label: "Dashboard",  icon: LayoutDashboard, to: "/student/dashboard"  },
-    { label: "Catalogs",   icon: BookOpen,        to: "/student/books"      },
-    { label: "My Borrows", icon: BookMarked,      to: "/student/borrows"    },
-    { label: "My QR Code", icon: QrCode,          to: "/student/qr"         },
+    { label: "Dashboard",      icon: LayoutDashboard, to: "/student/dashboard"      },
+    { label: "Catalogs",       icon: BookOpen,        to: "/student/books"          },
+    { label: "My Borrows",     icon: BookMarked,      to: "/student/borrows"        },
+    { label: "Reservations",   icon: CalendarDays,    to: "/student/reservations"   },
+    { label: "My QR Code",     icon: QrCode,          to: "/student/qr"             },
   ],
   staff: [
     { label: "Dashboard",  icon: LayoutDashboard, to: "/student/dashboard"  },

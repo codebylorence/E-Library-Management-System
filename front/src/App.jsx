@@ -14,6 +14,8 @@ import AdminBorrows from "./pages/AdminBorrows";
 import AdminAttendance from "./pages/AdminAttendance";
 import MyBorrows from "./pages/MyBorrows";
 import MyQR from "./pages/MyQR";
+import MyReservations from "./pages/MyReservations";
+import AdminReservations from "./pages/AdminReservations";
 import OAuthCallback from "./pages/OAuthCallback";
 import CreateProfile from "./pages/CreateProfile";
 import BookDetail from "./pages/BookDetail";
@@ -60,6 +62,7 @@ function App() {
           <Route path="users" element={<Users />} />
           <Route path="borrows" element={<AdminBorrows />} />
           <Route path="attendance" element={<AdminAttendance />} />
+          <Route path="reservations" element={<AdminReservations />} />
         </Route>
 
         {/* Student / Faculty / Staff nested routes */}
@@ -77,6 +80,7 @@ function App() {
           <Route path="books/:id" element={<BookDetail />} />
           <Route path="borrows" element={<MyBorrows />} />
           <Route path="qr" element={<MyQR />} />
+          <Route path="reservations" element={<MyReservations />} />
         </Route>
 
         {/* Unauthorized */}
