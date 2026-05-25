@@ -1,18 +1,16 @@
 import express from "express"
 import cors from "cors"
-import dotenv from "dotenv"
 import path from "path"
 import { fileURLToPath } from "url"
 import userRoutes from "./routes/userRoutes.js"
 import bookRoutes from "./routes/bookRoutes.js"
 import borrowRoutes from "./routes/borrowRoutes.js"
 import attendanceRoutes from "./routes/attendanceRoutes.js"
+import reservationRoutes from "./routes/reservationRoutes.js"
 import upload from "./config/upload.js"
 import uploadId from "./config/uploadId.js"
 import uploadPdf from "./config/uploadPdf.js"
 import passport from "./config/passport.js"
-
-dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -64,6 +62,7 @@ app.use("/api/users", userRoutes);
 app.use("/api/books", bookRoutes);
 app.use("/api/borrows", borrowRoutes);
 app.use("/api/attendance", attendanceRoutes);
+app.use("/api/reservations", reservationRoutes);
 
 app.get("/", (req, res) => {
     res.send("Backend is running");

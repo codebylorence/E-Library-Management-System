@@ -4,6 +4,7 @@ import User from "./src/models/User.js";
 import Book from "./src/models/Book.js";
 import BorrowRecord from "./src/models/BorrowRecord.js";
 import AttendanceRecord from "./src/models/AttendanceRecord.js";
+import ReservationRecord from "./src/models/ReservationRecord.js";
 import seedAdmin from "./src/config/seedAdmin.js";
 
 const PORT = process.env.PORT;
