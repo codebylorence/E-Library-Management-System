@@ -1,5 +1,5 @@
-import { useState, useEffect, useMemo } from "react";
-import { Search, X, Clock, AlertTriangle, CheckCircle, PhilippinePeso, BookPlus, Zap } from "lucide-react";
+import { useState, useEffect, useMemo, useRef } from "react";
+import { Search, X, Clock, AlertTriangle, CheckCircle, PhilippinePeso, BookPlus, Zap, ChevronDown } from "lucide-react";
 import api from "../api/axios";
 import CoverImage from "../components/CoverImage";
 
@@ -24,15 +24,66 @@ const AdminBorrows = () => {
 
   // Quick Borrow state
   const [showQuickBorrow, setShowQuickBorrow] = useState(false);
-  const [allUsers, setAllUsers]     = useState([]);
-  const [qbLoading, setQbLoading]   = useState(false);
-  const [qbError, setQbError]       = useState("");
-  const [loanDaysMode, setLoanDaysMode] = useState("preset"); // "preset" | "custom"
-  const [qbForm, setQbForm]         = useState({
+  const [allUsers, setAllUsers]       = useState([]);
+  const [qbLoading, setQbLoading]     = useState(false);
+  const [qbError, setQbError]         = useState("");
+  const [loanDaysMode, setLoanDaysMode] = useState("preset");
+  const [qbSuggestions, setQbSuggestions] = useState([]);
+  const [qbForm, setQbForm] = useState({
     title: "", author: "", category: "", publishedYear: "",
-    isbn: "", quantity: "1", shelfLocation: "", publisher: "",
+    isbn: "", shelfLocation: "", publisher: "",
     userId: "", loanDays: "7",
   });
+
+  // Searchable user picker state
+  const [userSearch, setUserSearch]         = useState("");
+  const [showUserDropdown, setShowUserDropdown] = useState(false);
+  const [selectedUser, setSelectedUser]     = useState(null);
+  const userPickerRef = useRef(null);
+
+  const searchHistory = async (q) => {
+    if (!q || q.length < 2) { setQbSuggestions([]); return; }
+    try {
+      const { data } = await api.get(`/borrows/quick/history?q=${encodeURIComponent(q)}`);
+      setQbSuggestions(data.results || []);
+    } catch { setQbSuggestions([]); }
+  };
+
+  const applySuggestion = (s) => {
+    setQbForm(p => ({
+      ...p,
+      title:         s.qbTitle         || p.title,
+      author:        s.qbAuthor        || p.author,
+      isbn:          s.qbIsbn          || p.isbn,
+      category:      s.qbCategory      || p.category,
+      publisher:     s.qbPublisher     || p.publisher,
+      shelfLocation: s.qbShelfLocation || p.shelfLocation,
+      publishedYear: s.qbPublishedYear  ? String(s.qbPublishedYear) : p.publishedYear,
+    }));
+    setQbSuggestions([]);
+  };
+
+  // Close user dropdown when clicking outside
+  useEffect(() => {
+    const handler = (e) => {
+      if (userPickerRef.current && !userPickerRef.current.contains(e.target)) {
+        setShowUserDropdown(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  const filteredUsers = useMemo(() => {
+    if (!userSearch.trim()) return allUsers;
+    const q = userSearch.toLowerCase();
+    return allUsers.filter(
+      (u) =>
+        u.fullName?.toLowerCase().includes(q) ||
+        u.email?.toLowerCase().includes(q) ||
+        u.studentNumber?.toLowerCase().includes(q)
+    );
+  }, [allUsers, userSearch]);
 
   const fetchData = async () => {
     setLoading(true);
@@ -53,9 +104,13 @@ const AdminBorrows = () => {
   useEffect(() => { fetchData(); }, []);
 
   const openQuickBorrow = async () => {
-    setQbForm({ title: "", author: "", category: "", publishedYear: "", isbn: "", quantity: "1", shelfLocation: "", publisher: "", userId: "", loanDays: "7" });
+    setQbForm({ title: "", author: "", category: "", publishedYear: "", isbn: "", shelfLocation: "", publisher: "", userId: "", loanDays: "7" });
     setQbError("");
     setLoanDaysMode("preset");
+    setQbSuggestions([]);
+    setUserSearch("");
+    setSelectedUser(null);
+    setShowUserDropdown(false);
     if (allUsers.length === 0) {
       try {
         const { data } = await api.get("/users");
@@ -72,8 +127,7 @@ const AdminBorrows = () => {
     try {
       await api.post("/borrows/quick", {
         ...qbForm,
-        publishedYear: Number(qbForm.publishedYear),
-        quantity: Number(qbForm.quantity),
+        publishedYear: qbForm.publishedYear ? Number(qbForm.publishedYear) : undefined,
         loanDays: Number(qbForm.loanDays),
         userId: Number(qbForm.userId),
       });
@@ -335,8 +389,12 @@ const AdminBorrows = () => {
                             <p className="text-gray-400 text-xs">{b.borrower?.email}</p>
                           </td>
                           <td className="px-4 py-3 text-xs max-w-[160px]">
-                            <p className="truncate font-medium text-gray-700">{b.book?.title}</p>
-                            <p className="text-gray-400">{b.book?.isbn || "—"}</p>
+                            <p className="truncate font-medium text-gray-700">
+                              {b.book?.title || b.qbTitle || "—"}
+                            </p>
+                            <p className="text-gray-400">
+                              {b.book?.isbn || b.qbIsbn || "—"}
+                            </p>
                           </td>
                           <td className="px-4 py-3 text-gray-600 text-xs">{b.borrowDate || "—"}</td>
                           <td className={`px-4 py-3 text-xs font-medium ${isOverdue ? "text-red-600" : "text-gray-600"}`}>
@@ -399,13 +457,13 @@ const AdminBorrows = () => {
       {/* Quick Borrow Modal */}
       {showQuickBorrow && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[92vh] flex flex-col">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[92vh] flex flex-col">
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 shrink-0">
               <div>
                 <h2 className="text-lg font-bold text-gray-800 flex items-center gap-2">
                   <Zap size={18} className="text-[#227325]" /> Quick Borrow
                 </h2>
-                <p className="text-xs text-gray-400 mt-0.5">Add a book and process the borrow in one step</p>
+                <p className="text-xs text-gray-400 mt-0.5">Record a borrow — book info saved for future use</p>
               </div>
               <button onClick={() => setShowQuickBorrow(false)} className="text-gray-400 hover:text-gray-600 p-1">
                 <X size={20} />
@@ -413,7 +471,7 @@ const AdminBorrows = () => {
             </div>
 
             <div className="overflow-y-auto flex-1 px-6 py-5">
-              <form id="qb-form" onSubmit={handleQuickBorrow} className="space-y-6">
+              <form id="qb-form" onSubmit={handleQuickBorrow} className="space-y-5">
                 {qbError && (
                   <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-600">{qbError}</div>
                 )}
@@ -424,59 +482,129 @@ const AdminBorrows = () => {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="sm:col-span-2">
                       <label className="block text-xs font-semibold text-gray-600 mb-1">Select User <span className="text-red-400">*</span></label>
-                      <select
-                        value={qbForm.userId}
-                        onChange={(e) => setQbForm((p) => ({ ...p, userId: e.target.value }))}
-                        required
-                        className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-[#227325] outline-none bg-white"
-                      >
-                        <option value="">— Select borrower —</option>
-                        {allUsers.map((u) => (
-                          <option key={u.id} value={u.id}>
-                            {u.fullName} ({u.email})
-                          </option>
-                        ))}
-                      </select>
+                      <div ref={userPickerRef} className="relative">
+                        {/* Display box */}
+                        <button
+                          type="button"
+                          onClick={() => { setShowUserDropdown((v) => !v); setUserSearch(""); }}
+                          className={`w-full flex items-center justify-between rounded-md border px-3 py-2 text-sm bg-white text-left focus:outline-none transition-colors ${
+                            showUserDropdown ? "border-[#227325]" : "border-gray-300 hover:border-gray-400"
+                          }`}
+                        >
+                          {selectedUser ? (
+                            <span className="truncate text-gray-800">
+                              {selectedUser.fullName}
+                              <span className="text-gray-400 ml-1">({selectedUser.email})</span>
+                            </span>
+                          ) : (
+                            <span className="text-gray-400">— Select borrower —</span>
+                          )}
+                          <div className="flex items-center gap-1 shrink-0">
+                            {selectedUser && (
+                              <span
+                                role="button"
+                                tabIndex={0}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedUser(null);
+                                  setQbForm((p) => ({ ...p, userId: "" }));
+                                }}
+                                onKeyDown={(e) => e.key === "Enter" && e.currentTarget.click()}
+                                className="text-gray-300 hover:text-red-400 transition-colors p-0.5 rounded"
+                              >
+                                <X size={13} />
+                              </span>
+                            )}
+                            <ChevronDown size={15} className={`text-gray-400 transition-transform ${showUserDropdown ? "rotate-180" : ""}`} />
+                          </div>
+                        </button>
+
+                        {/* Hidden input for form validation */}
+                        <input type="hidden" name="userId" value={qbForm.userId} required />
+
+                        {/* Dropdown */}
+                        {showUserDropdown && (
+                          <div className="absolute z-20 top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-xl flex flex-col max-h-64">
+                            {/* Search input */}
+                            <div className="p-2 border-b border-gray-100 shrink-0">
+                              <div className="relative">
+                                <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
+                                <input
+                                  autoFocus
+                                  type="text"
+                                  placeholder="Search by name, email, or student no..."
+                                  value={userSearch}
+                                  onChange={(e) => setUserSearch(e.target.value)}
+                                  className="w-full pl-7 pr-3 py-1.5 text-xs border border-gray-200 rounded-md focus:outline-none focus:border-[#227325]"
+                                />
+                              </div>
+                            </div>
+                            {/* User list */}
+                            <div className="overflow-y-auto flex-1">
+                              {filteredUsers.length === 0 ? (
+                                <p className="text-xs text-gray-400 text-center py-4">No users found.</p>
+                              ) : (
+                                filteredUsers.map((u) => (
+                                  <button
+                                    key={u.id}
+                                    type="button"
+                                    onClick={() => {
+                                      setSelectedUser(u);
+                                      setQbForm((p) => ({ ...p, userId: String(u.id) }));
+                                      setShowUserDropdown(false);
+                                      setUserSearch("");
+                                    }}
+                                    className={`w-full text-left px-4 py-2.5 hover:bg-green-50 border-b border-gray-50 last:border-0 transition-colors ${
+                                      qbForm.userId === String(u.id) ? "bg-green-50" : ""
+                                    }`}
+                                  >
+                                    <p className="text-sm font-medium text-gray-800 truncate">{u.fullName}</p>
+                                    <p className="text-xs text-gray-400 truncate">
+                                      {u.email}
+                                      {u.studentNumber ? ` · ${u.studentNumber}` : ""}
+                                    </p>
+                                  </button>
+                                ))
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                      {/* Validation trigger — shows native required message if no user selected on submit */}
+                      {!qbForm.userId && (
+                        <input
+                          tabIndex={-1}
+                          required
+                          value=""
+                          onChange={() => {}}
+                          className="absolute opacity-0 w-0 h-0 pointer-events-none"
+                          aria-hidden="true"
+                        />
+                      )}
                     </div>
                     <div>
                       <div className="flex items-center justify-between mb-1">
                         <label className="text-xs font-semibold text-gray-600">Loan Period (days) <span className="text-red-400">*</span></label>
                         <div className="flex rounded-md border border-gray-300 overflow-hidden text-xs">
-                          <button
-                            type="button"
-                            onClick={() => { setLoanDaysMode("preset"); setQbForm((p) => ({ ...p, loanDays: "7" })); }}
-                            className={`px-2.5 py-1 font-medium transition-colors ${loanDaysMode === "preset" ? "bg-[#227325] text-white" : "bg-white text-gray-500 hover:bg-gray-50"}`}
-                          >
+                          <button type="button" onClick={() => { setLoanDaysMode("preset"); setQbForm((p) => ({ ...p, loanDays: "7" })); }}
+                            className={`px-2.5 py-1 font-medium transition-colors ${loanDaysMode === "preset" ? "bg-[#227325] text-white" : "bg-white text-gray-500 hover:bg-gray-50"}`}>
                             Preset
                           </button>
-                          <button
-                            type="button"
-                            onClick={() => { setLoanDaysMode("custom"); setQbForm((p) => ({ ...p, loanDays: "" })); }}
-                            className={`px-2.5 py-1 font-medium transition-colors border-l border-gray-300 ${loanDaysMode === "custom" ? "bg-[#227325] text-white" : "bg-white text-gray-500 hover:bg-gray-50"}`}
-                          >
+                          <button type="button" onClick={() => { setLoanDaysMode("custom"); setQbForm((p) => ({ ...p, loanDays: "" })); }}
+                            className={`px-2.5 py-1 font-medium transition-colors border-l border-gray-300 ${loanDaysMode === "custom" ? "bg-[#227325] text-white" : "bg-white text-gray-500 hover:bg-gray-50"}`}>
                             Custom
                           </button>
                         </div>
                       </div>
                       {loanDaysMode === "preset" ? (
-                        <select
-                          value={qbForm.loanDays}
-                          onChange={(e) => setQbForm((p) => ({ ...p, loanDays: e.target.value }))}
-                          className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-[#227325] outline-none bg-white"
-                        >
+                        <select value={qbForm.loanDays} onChange={(e) => setQbForm((p) => ({ ...p, loanDays: e.target.value }))}
+                          className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-[#227325] outline-none bg-white">
                           {[7, 8, 10, 14].map((d) => <option key={d} value={d}>{d} days</option>)}
                         </select>
                       ) : (
-                        <input
-                          type="number"
-                          value={qbForm.loanDays}
-                          onChange={(e) => setQbForm((p) => ({ ...p, loanDays: e.target.value }))}
-                          required
-                          min="1"
-                          max="365"
-                          placeholder="Enter number of days..."
-                          className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-[#227325] outline-none"
-                        />
+                        <input type="number" value={qbForm.loanDays} onChange={(e) => setQbForm((p) => ({ ...p, loanDays: e.target.value }))}
+                          required min="1" max="365" placeholder="Enter number of days..."
+                          className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-[#227325] outline-none" />
                       )}
                     </div>
                   </div>
@@ -485,39 +613,60 @@ const AdminBorrows = () => {
                 {/* Book Info */}
                 <div>
                   <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-3">Book Information</p>
+
+                  {/* Title with autocomplete */}
+                  <div className="relative mb-4">
+                    <label className="block text-xs font-semibold text-gray-600 mb-1">Title <span className="text-red-400">*</span></label>
+                    <input
+                      value={qbForm.title}
+                      onChange={(e) => { setQbForm((p) => ({ ...p, title: e.target.value })); searchHistory(e.target.value); }}
+                      required placeholder="Book title..."
+                      className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-[#227325] outline-none"
+                    />
+                    {qbSuggestions.length > 0 && (
+                      <div className="absolute z-10 top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                        {qbSuggestions.map((s, i) => (
+                          <button key={i} type="button" onClick={() => applySuggestion(s)}
+                            className="w-full text-left px-4 py-2.5 hover:bg-green-50 border-b border-gray-100 last:border-0">
+                            <p className="text-sm font-medium text-gray-800">{s.qbTitle}</p>
+                            <p className="text-xs text-gray-400">{s.qbAuthor}{s.qbIsbn ? ` · ${s.qbIsbn}` : ""}</p>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="sm:col-span-2">
-                      <label className="block text-xs font-semibold text-gray-600 mb-1">Title <span className="text-red-400">*</span></label>
-                      <input value={qbForm.title} onChange={(e) => setQbForm((p) => ({ ...p, title: e.target.value }))} required placeholder="Book title..." className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-[#227325] outline-none" />
-                    </div>
                     <div>
                       <label className="block text-xs font-semibold text-gray-600 mb-1">Author <span className="text-red-400">*</span></label>
-                      <input value={qbForm.author} onChange={(e) => setQbForm((p) => ({ ...p, author: e.target.value }))} required placeholder="Author name..." className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-[#227325] outline-none" />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-semibold text-gray-600 mb-1">Category <span className="text-red-400">*</span></label>
-                      <input value={qbForm.category} onChange={(e) => setQbForm((p) => ({ ...p, category: e.target.value }))} required placeholder="e.g. Computer Science" className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-[#227325] outline-none" />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-semibold text-gray-600 mb-1">Year Published <span className="text-red-400">*</span></label>
-                      <input type="number" value={qbForm.publishedYear} onChange={(e) => setQbForm((p) => ({ ...p, publishedYear: e.target.value }))} required placeholder="e.g. 2023" min="1900" max="2099" className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-[#227325] outline-none" />
+                      <input value={qbForm.author} onChange={(e) => setQbForm((p) => ({ ...p, author: e.target.value }))} required placeholder="Author name..."
+                        className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-[#227325] outline-none" />
                     </div>
                     <div>
                       <label className="block text-xs font-semibold text-gray-600 mb-1">ISBN</label>
-                      <input value={qbForm.isbn} onChange={(e) => setQbForm((p) => ({ ...p, isbn: e.target.value }))} placeholder="e.g. 978-3-16-148410-0" className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-[#227325] outline-none" />
-                      <p className="text-xs text-gray-400 mt-1">If ISBN exists in system, that book will be used.</p>
+                      <input value={qbForm.isbn} onChange={(e) => setQbForm((p) => ({ ...p, isbn: e.target.value }))} placeholder="e.g. 978-3-16-148410-0"
+                        className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-[#227325] outline-none" />
                     </div>
                     <div>
-                      <label className="block text-xs font-semibold text-gray-600 mb-1">Quantity</label>
-                      <input type="number" value={qbForm.quantity} onChange={(e) => setQbForm((p) => ({ ...p, quantity: e.target.value }))} min="1" placeholder="1" className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-[#227325] outline-none" />
+                      <label className="block text-xs font-semibold text-gray-600 mb-1">Category</label>
+                      <input value={qbForm.category} onChange={(e) => setQbForm((p) => ({ ...p, category: e.target.value }))} placeholder="e.g. Computer Science"
+                        className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-[#227325] outline-none" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-600 mb-1">Year Published</label>
+                      <input type="number" value={qbForm.publishedYear} onChange={(e) => setQbForm((p) => ({ ...p, publishedYear: e.target.value }))}
+                        placeholder="e.g. 2023" min="1900" max="2099"
+                        className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-[#227325] outline-none" />
                     </div>
                     <div>
                       <label className="block text-xs font-semibold text-gray-600 mb-1">Shelf Location</label>
-                      <input value={qbForm.shelfLocation} onChange={(e) => setQbForm((p) => ({ ...p, shelfLocation: e.target.value }))} placeholder="e.g. Section A, Row 3" className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-[#227325] outline-none" />
+                      <input value={qbForm.shelfLocation} onChange={(e) => setQbForm((p) => ({ ...p, shelfLocation: e.target.value }))} placeholder="e.g. Section A, Row 3"
+                        className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-[#227325] outline-none" />
                     </div>
                     <div>
                       <label className="block text-xs font-semibold text-gray-600 mb-1">Publisher</label>
-                      <input value={qbForm.publisher} onChange={(e) => setQbForm((p) => ({ ...p, publisher: e.target.value }))} placeholder="Publisher name..." className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-[#227325] outline-none" />
+                      <input value={qbForm.publisher} onChange={(e) => setQbForm((p) => ({ ...p, publisher: e.target.value }))} placeholder="Publisher name..."
+                        className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-[#227325] outline-none" />
                     </div>
                   </div>
                 </div>
@@ -529,7 +678,7 @@ const AdminBorrows = () => {
                 Cancel
               </button>
               <button type="submit" form="qb-form" disabled={qbLoading} className="rounded-md bg-[#227325] px-6 py-2 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-60 shadow-sm">
-                {qbLoading ? "Processing..." : "Add Book & Borrow"}
+                {qbLoading ? "Processing..." : "Record Borrow"}
               </button>
             </div>
           </div>

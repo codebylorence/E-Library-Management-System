@@ -1,5 +1,5 @@
 import { Routes, Route, Navigate } from "react-router-dom";
-import { AuthProvider } from "./context/AuthContext";
+import { AuthProvider, useAuth } from "./context/AuthContext";
 import ProtectedRoute from "./routes/ProtectedRoute";
 import Home from "./pages/Home";
 import Login from "./pages/Login";
@@ -17,17 +17,29 @@ import MyQR from "./pages/MyQR";
 import OAuthCallback from "./pages/OAuthCallback";
 import CreateProfile from "./pages/CreateProfile";
 import BookDetail from "./pages/BookDetail";
+import Unauthorized from "./pages/Unauthorized";
 import GuestCatalogs from "./pages/GuestCatalogs";
 import GuestBookDetail from "./pages/GuestBookDetail";
+
 import "./App.css";
+
+/* Redirect logged-in users away from public pages (home, login) */
+const PublicRoute = ({ children }) => {
+  const { user } = useAuth();
+  if (!user) return children;
+  if (user.role === "admin" || user.role === "librarian") {
+    return <Navigate to="/admin/dashboard" replace />;
+  }
+  return <Navigate to="/student/dashboard" replace />;
+};
 
 function App() {
   return (
     <AuthProvider>
       <Routes>
-        {/* Public routes */}
-        <Route path="/" element={<Home />} />
-        <Route path="/login" element={<Login />} />
+        {/* Public routes — redirect to dashboard if already logged in */}
+        <Route path="/" element={<PublicRoute><Home /></PublicRoute>} />
+        <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
         <Route path="/oauth-callback" element={<OAuthCallback />} />
         <Route path="/create-profile" element={<CreateProfile />} />
         <Route path="/guest/catalogs" element={<GuestCatalogs />} />
@@ -67,15 +79,8 @@ function App() {
           <Route path="qr" element={<MyQR />} />
         </Route>
 
-        {/* Unauthorized fallback */}
-        <Route
-          path="/unauthorized"
-          element={
-            <div className="flex min-h-screen items-center justify-center text-gray-600">
-              Access Denied
-            </div>
-          }
-        />
+        {/* Unauthorized */}
+        <Route path="/unauthorized" element={<Unauthorized />} />
 
         {/* Catch-all */}
         <Route path="*" element={<Navigate to="/" replace />} />

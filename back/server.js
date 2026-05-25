@@ -13,6 +13,22 @@ sequelize.sync({ alter: shouldAlter })
   .then(async () => {
     console.log(`Database synced ✅ ${shouldAlter ? "(alter mode)" : ""}`);
 
+    // Add quick borrow inline fields to BorrowRecords if missing
+    try {
+      await sequelize.query("ALTER TABLE `BorrowRecords` MODIFY COLUMN `bookId` INT NULL;");
+    } catch { /* already nullable */ }
+    for (const col of [
+      "ADD COLUMN `qbTitle` VARCHAR(255) NULL",
+      "ADD COLUMN `qbAuthor` VARCHAR(255) NULL",
+      "ADD COLUMN `qbIsbn` VARCHAR(255) NULL",
+      "ADD COLUMN `qbCategory` VARCHAR(255) NULL",
+      "ADD COLUMN `qbPublisher` VARCHAR(255) NULL",
+      "ADD COLUMN `qbShelfLocation` VARCHAR(255) NULL",
+      "ADD COLUMN `qbPublishedYear` INT NULL",
+    ]) {
+      try { await sequelize.query(`ALTER TABLE \`BorrowRecords\` ${col};`); } catch { /* already exists */ }
+    }
+
     // Ensure role ENUM includes faculty and staff
     try {
       await sequelize.query(

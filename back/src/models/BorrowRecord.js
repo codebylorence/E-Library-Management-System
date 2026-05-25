@@ -19,9 +19,46 @@ const BorrowRecord = sequelize.define("BorrowRecord", {
 
   bookId: {
     type: DataTypes.INTEGER,
-    allowNull: false,
+    allowNull: true,   // null for quick borrows (no Book record created)
     references: { model: Book, key: "id" },
-    onDelete: "CASCADE",
+    onDelete: "SET NULL",
+  },
+
+  // Quick borrow inline book info (used when bookId is null)
+  qbTitle: {
+    type: DataTypes.STRING,
+    allowNull: true,
+    defaultValue: null,
+  },
+  qbAuthor: {
+    type: DataTypes.STRING,
+    allowNull: true,
+    defaultValue: null,
+  },
+  qbIsbn: {
+    type: DataTypes.STRING,
+    allowNull: true,
+    defaultValue: null,
+  },
+  qbCategory: {
+    type: DataTypes.STRING,
+    allowNull: true,
+    defaultValue: null,
+  },
+  qbPublisher: {
+    type: DataTypes.STRING,
+    allowNull: true,
+    defaultValue: null,
+  },
+  qbShelfLocation: {
+    type: DataTypes.STRING,
+    allowNull: true,
+    defaultValue: null,
+  },
+  qbPublishedYear: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    defaultValue: null,
   },
 
   borrowDate: {

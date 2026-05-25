@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { Search, X, BookOpen, FileText, BookMarked, GraduationCap, Newspaper, LogIn } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import api from "../api/axios";
 import CoverImage from "../components/CoverImage";
 import cvsulogo from "../assets/CvSU-Logo.webp";
@@ -15,10 +15,11 @@ const TYPE_META = {
 
 const GuestCatalogs = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [books, setBooks]     = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError]     = useState("");
-  const [search, setSearch]               = useState("");
+  const [search, setSearch]               = useState(searchParams.get("q") || "");
   const [filterCategory, setFilterCategory] = useState("all");
   const [filterMaterial, setFilterMaterial] = useState("all");
 

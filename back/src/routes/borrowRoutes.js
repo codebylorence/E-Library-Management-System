@@ -11,6 +11,7 @@ import {
   getBorrowStats,
   getBorrowChartData,
   quickBorrow,
+  searchQuickBorrowHistory,
 } from "../controllers/borrowController.js";
 import { authMiddleware } from "../middleware/authMiddleware.js";
 import { roleMiddleware } from "../middleware/roleMiddleware.js";
@@ -23,8 +24,11 @@ router.get("/stats", authMiddleware, roleMiddleware("admin", "librarian"), getBo
 // Chart data
 router.get("/chart", authMiddleware, roleMiddleware("admin", "librarian"), getBorrowChartData);
 
-// Admin/Librarian: quick borrow — create book + borrow in one step
+// Admin/Librarian: quick borrow — record only, no Book entry created
 router.post("/quick", authMiddleware, roleMiddleware("admin", "librarian"), quickBorrow);
+
+// Admin/Librarian: search past quick borrow book history for autocomplete
+router.get("/quick/history", authMiddleware, roleMiddleware("admin", "librarian"), searchQuickBorrowHistory);
 
 // Student: submit borrow request
 router.post("/", authMiddleware, borrowBook);

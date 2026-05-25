@@ -98,6 +98,8 @@ const QRScanner = ({ onScan, onError }) => {
 /* ─────────────────────────────────────────────────────────
    Main page
 ───────────────────────────────────────────────────────── */
+const todayPH = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Manila" });
+
 const AdminAttendance = () => {
   /* stats */
   const [stats, setStats] = useState(null);
@@ -109,9 +111,8 @@ const AdminAttendance = () => {
   const [loadingRec, setLoadingRec] = useState(true);
   const [recError, setRecError] = useState("");
   const [search, setSearch]     = useState("");
-  const [dateFilter, setDateFilter] = useState(
-    new Date().toISOString().split("T")[0]
-  );
+  const [dateFrom, setDateFrom] = useState(todayPH);
+  const [dateTo, setDateTo]     = useState(todayPH);
 
   /* scanner feedback */
   const [scanResult, setScanResult]       = useState(null);
@@ -136,8 +137,9 @@ const AdminAttendance = () => {
     try {
       const params = new URLSearchParams({
         page, limit: LIMIT,
-        ...(dateFilter && { date: dateFilter }),
-        ...(search     && { search }),
+        ...(dateFrom && { dateFrom }),
+        ...(dateTo   && { dateTo   }),
+        ...(search   && { search   }),
       });
       const { data } = await api.get(`/attendance?${params}`);
       setRecords(data.records);
@@ -147,7 +149,7 @@ const AdminAttendance = () => {
     } finally {
       setLoadingRec(false);
     }
-  }, [page, dateFilter, search]);
+  }, [page, dateFrom, dateTo, search]);
 
   useEffect(() => { fetchStats(); fetchRecords(); }, [fetchStats, fetchRecords]);
 
@@ -303,12 +305,24 @@ const AdminAttendance = () => {
           {/* Filters */}
           <div className="flex flex-wrap items-center gap-3">
             <h2 className="text-base font-semibold text-gray-800 flex-1">Attendance Records</h2>
-            <input
-              type="date"
-              value={dateFilter}
-              onChange={(e) => { setDateFilter(e.target.value); setPage(1); }}
-              className="rounded-md border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:border-[#227325]"
-            />
+            <div className="flex items-center gap-2">
+              <label className="text-xs text-gray-500 font-medium">From</label>
+              <input
+                type="date"
+                value={dateFrom}
+                max={dateTo || undefined}
+                onChange={(e) => { setDateFrom(e.target.value); setPage(1); }}
+                className="rounded-md border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:border-[#227325]"
+              />
+              <label className="text-xs text-gray-500 font-medium">To</label>
+              <input
+                type="date"
+                value={dateTo}
+                min={dateFrom || undefined}
+                onChange={(e) => { setDateTo(e.target.value); setPage(1); }}
+                className="rounded-md border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:border-[#227325]"
+              />
+            </div>
             <div className="relative">
               <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
               <input
@@ -319,12 +333,12 @@ const AdminAttendance = () => {
                 className="pl-8 pr-4 py-2 text-sm border border-gray-200 rounded-md focus:outline-none focus:border-[#227325] w-44"
               />
             </div>
-            {(search || dateFilter) && (
+            {(search || dateFrom !== todayPH || dateTo !== todayPH) && (
               <button
-                onClick={() => { setSearch(""); setDateFilter(""); setPage(1); }}
+                onClick={() => { setSearch(""); setDateFrom(todayPH); setDateTo(todayPH); setPage(1); }}
                 className="flex items-center gap-1 text-xs text-gray-500 hover:text-red-500"
               >
-                <X size={13} /> Clear
+                <X size={13} /> Reset
               </button>
             )}
           </div>

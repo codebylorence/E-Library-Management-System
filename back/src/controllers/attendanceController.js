@@ -4,7 +4,9 @@ import AttendanceRecord from "../models/AttendanceRecord.js";
 import User from "../models/User.js";
 
 /* ── helpers ─────────────────────────────────── */
-const todayStr = () => new Date().toISOString().split("T")[0];
+// Use Philippine Time (UTC+8) to get the correct local date
+const todayStr = () =>
+  new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Manila" }); // "en-CA" gives YYYY-MM-DD format
 
 const nowTimeStr = () =>
   new Date().toLocaleTimeString("en-PH", {
@@ -90,10 +92,21 @@ export const scanAttendance = async (req, res) => {
 /* ── GET /attendance  (admin/librarian: all records with filters) ─── */
 export const getAllAttendance = async (req, res) => {
   try {
-    const { date, search, page = 1, limit = 50 } = req.query;
+    const { date, dateFrom, dateTo, search, page = 1, limit = 50 } = req.query;
     const where = {};
 
-    if (date) where.date = date;
+    // Support both single date (legacy) and date range
+    if (date) {
+      where.date = date;
+    } else if (dateFrom || dateTo) {
+      if (dateFrom && dateTo) {
+        where.date = { [Op.between]: [dateFrom, dateTo] };
+      } else if (dateFrom) {
+        where.date = { [Op.gte]: dateFrom };
+      } else {
+        where.date = { [Op.lte]: dateTo };
+      }
+    }
 
     const userWhere = {};
     if (search) {
@@ -164,10 +177,10 @@ export const getAttendanceChartData = async (req, res) => {
     for (let i = 29; i >= 0; i--) {
       const d = new Date();
       d.setDate(d.getDate() - i);
-      const dateStr = d.toISOString().split("T")[0];
+      const dateStr = d.toLocaleDateString("en-CA", { timeZone: "Asia/Manila" });
       const count = await AttendanceRecord.count({ where: { date: dateStr } });
       monthly.push({
-        date: d.toLocaleDateString("en-PH", { month: "short", day: "numeric" }),
+        date: d.toLocaleDateString("en-PH", { timeZone: "Asia/Manila", month: "short", day: "numeric" }),
         visitors: count,
       });
     }

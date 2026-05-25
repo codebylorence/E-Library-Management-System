@@ -3,11 +3,10 @@ import { useNavigate } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import cvsulogo from "../assets/CvSU-Logo.webp";
-import api from "../api/axios";
 
 const Login = () => {
-  const navigate   = useNavigate();
-  const { login }  = useAuth();
+  const navigate  = useNavigate();
+  const { login } = useAuth();
 
   const [showEmail, setShowEmail] = useState(false);
   const [email, setEmail]         = useState("");

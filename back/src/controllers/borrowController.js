@@ -9,7 +9,9 @@ const DEFAULT_LOAN_DAYS = 7;
 const REQUEST_EXPIRY_HOURS = 24; // pending requests expire after 24 hours
 
 /* ── helpers ─────────────────────────────────── */
-const today = () => new Date().toISOString().split("T")[0];
+// Use Philippine Time (UTC+8) to get the correct local date
+const today = () =>
+  new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Manila" }); // "en-CA" gives YYYY-MM-DD format
 
 const daysBetween = (dateA, dateB) => {
   const a = new Date(dateA);
@@ -38,10 +40,20 @@ const enrichRecord = (record) => {
     r.overdueDays = daysBetween(r.dueDate, refDate);
     r.fineAmount  = +(r.overdueDays * DAILY_FINE_RATE).toFixed(2);
   }
-  // Add human-readable expiry info for pending requests
   if (r.status === "pending" && r.requestExpiresAt) {
     const msLeft = new Date(r.requestExpiresAt) - new Date();
     r.expiresInMinutes = Math.max(0, Math.floor(msLeft / 60000));
+  }
+  // Normalise quick borrow book info into a virtual `book` shape for the frontend
+  if (!r.book && r.qbTitle) {
+    r.book = {
+      title: r.qbTitle,
+      author: r.qbAuthor,
+      isbn: r.qbIsbn,
+      shelfLocation: r.qbShelfLocation,
+      coverImage: null,
+      materialType: "Library Books",
+    };
   }
   return r;
 };
@@ -227,9 +239,12 @@ export const returnBook = async (req, res) => {
       fineStatus:  isLate ? "unpaid"    : "none",
     });
 
-    const book      = record.book;
-    const newCopies = (book.availableCopies || 0) + 1;
-    await book.update({ availableCopies: newCopies, status: "available" });
+    // Only update book copies for regular borrows (quick borrows have no Book record)
+    const book = record.book;
+    if (book) {
+      const newCopies = (book.availableCopies || 0) + 1;
+      await book.update({ availableCopies: newCopies, status: "available" });
+    }
 
     res.status(200).json({
       message: isLate
@@ -258,103 +273,87 @@ export const markFinePaid = async (req, res) => {
   }
 };
 
-/* ── QUICK BORROW (librarian creates book + borrow in one step) ── */
+/* ── QUICK BORROW (librarian — saves record only, no Book entry) ── */
 export const quickBorrow = async (req, res) => {
-  const t = await BorrowRecord.sequelize.transaction();
   try {
     const {
-      // Book fields
       title, author, category, publishedYear, isbn,
-      quantity = 1, shelfLocation, publisher, description, coverImage,
-      // Borrow fields
+      shelfLocation, publisher,
       userId, loanDays = DEFAULT_LOAN_DAYS,
     } = req.body;
 
-    if (!title || !author || !category || !publishedYear) {
-      await t.rollback();
-      return res.status(400).json({ message: "Book title, author, category, and year are required." });
-    }
-    if (!userId) {
-      await t.rollback();
-      return res.status(400).json({ message: "Borrower (userId) is required." });
-    }
-    if (loanDays < 7 || loanDays > 14) {
-      await t.rollback();
-      return res.status(400).json({ message: "Loan period must be between 7 and 14 days." });
+    if (!title || !author || !userId) {
+      return res.status(400).json({ message: "Title, author, and borrower are required." });
     }
 
     // Check borrower has no unpaid fines
     const unpaidFine = await BorrowRecord.findOne({ where: { userId, fineStatus: "unpaid" } });
     if (unpaidFine) {
-      await t.rollback();
       return res.status(400).json({ message: "Borrower has unpaid fines. Please settle them first." });
     }
 
-    // Create or find the book
-    let book;
-    if (isbn) {
-      book = await Book.findOne({ where: { isbn }, transaction: t });
-    }
-
-    if (!book) {
-      const qty = Number(quantity);
-      book = await Book.create({
-        title, author, category,
-        publishedYear: Number(publishedYear),
-        isbn: isbn || null,
-        quantity: qty,
-        availableCopies: qty,
-        shelfLocation: shelfLocation || null,
-        publisher: publisher || null,
-        description: description || null,
-        coverImage: coverImage || null,
-        materialType: "Library Books",
-        status: "available",
-      }, { transaction: t });
-    }
-
-    // Check availability
-    if (!book.availableCopies || book.availableCopies <= 0) {
-      await t.rollback();
-      return res.status(400).json({ message: "No copies available for this book." });
-    }
-
-    // Check no active borrow of same book
-    const activeBorrow = await BorrowRecord.findOne({
-      where: { userId, bookId: book.id, status: { [Op.in]: ["pending", "borrowed", "overdue"] } },
-    });
-    if (activeBorrow) {
-      await t.rollback();
-      return res.status(400).json({ message: "Borrower already has an active borrow for this book." });
-    }
-
-    // Create borrow record — immediately approved (librarian is doing this in person)
     const borrowDate = today();
     const dueDate    = addDays(borrowDate, Number(loanDays));
 
     const record = await BorrowRecord.create({
-      userId, bookId: book.id,
-      borrowDate, dueDate, loanDays,
+      userId,
+      bookId: null,           // no Book record — quick borrow only
+      borrowDate,
+      dueDate,
+      loanDays: Number(loanDays),
       status: "borrowed",
-    }, { transaction: t });
-
-    // Decrement copies
-    const newCopies = book.availableCopies - 1;
-    await book.update({
-      availableCopies: newCopies,
-      status: newCopies <= 0 ? "unavailable" : "available",
-    }, { transaction: t });
-
-    await t.commit();
+      qbTitle:        title,
+      qbAuthor:       author,
+      qbIsbn:         isbn         || null,
+      qbCategory:     category     || null,
+      qbPublisher:    publisher    || null,
+      qbShelfLocation: shelfLocation || null,
+      qbPublishedYear: publishedYear ? Number(publishedYear) : null,
+    });
 
     res.status(201).json({
-      message: "Book added and borrow recorded successfully.",
-      book,
+      message: "Quick borrow recorded successfully.",
       borrow: record,
     });
   } catch (err) {
-    await t.rollback();
     res.status(500).json({ message: "Quick borrow failed.", error: err.message });
+  }
+};
+
+/* ── SEARCH QUICK BORROW HISTORY (librarian — autocomplete) ── */
+export const searchQuickBorrowHistory = async (req, res) => {
+  try {
+    const { q } = req.query;
+    const where = { bookId: null }; // only quick borrow records
+
+    if (q) {
+      where[Op.or] = [
+        { qbTitle:  { [Op.like]: `%${q}%` } },
+        { qbAuthor: { [Op.like]: `%${q}%` } },
+        { qbIsbn:   { [Op.like]: `%${q}%` } },
+      ];
+    }
+
+    // Return distinct book info from past quick borrows
+    const records = await BorrowRecord.findAll({
+      where,
+      attributes: ["qbTitle","qbAuthor","qbIsbn","qbCategory","qbPublisher","qbShelfLocation","qbPublishedYear"],
+      order: [["createdAt", "DESC"]],
+      limit: 20,
+    });
+
+    // Deduplicate by title+author
+    const seen = new Set();
+    const unique = records.filter(r => {
+      const key = `${r.qbTitle}||${r.qbAuthor}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+
+    res.json({ results: unique });
+  } catch (err) {
+    res.status(500).json({ message: "Search failed.", error: err.message });
   }
 };
 /* ── BORROW CHART DATA (admin/librarian) ─────── */
@@ -365,12 +364,12 @@ export const getBorrowChartData = async (req, res) => {
     for (let i = 6; i >= 0; i--) {
       const d = new Date();
       d.setDate(d.getDate() - i);
-      const dateStr = d.toISOString().split("T")[0];
+      const dateStr = d.toLocaleDateString("en-CA", { timeZone: "Asia/Manila" });
       const count = await BorrowRecord.count({
         where: { borrowDate: dateStr, status: { [Op.in]: ["borrowed", "overdue", "returned"] } },
       });
       daily.push({
-        date: d.toLocaleDateString("en-PH", { month: "short", day: "numeric" }),
+        date: d.toLocaleDateString("en-PH", { timeZone: "Asia/Manila", month: "short", day: "numeric" }),
         borrows: count,
       });
     }
@@ -384,12 +383,12 @@ export const getBorrowChartData = async (req, res) => {
       start.setDate(start.getDate() - 6);
       const count = await BorrowRecord.count({
         where: {
-          borrowDate: { [Op.between]: [start.toISOString().split("T")[0], end.toISOString().split("T")[0]] },
+          borrowDate: { [Op.between]: [start.toLocaleDateString("en-CA", { timeZone: "Asia/Manila" }), end.toLocaleDateString("en-CA", { timeZone: "Asia/Manila" })] },
           status: { [Op.in]: ["borrowed", "overdue", "returned"] },
         },
       });
       weekly.push({
-        week: `${start.toLocaleDateString("en-PH", { month: "short", day: "numeric" })} – ${end.toLocaleDateString("en-PH", { month: "short", day: "numeric" })}`,
+        week: `${start.toLocaleDateString("en-PH", { timeZone: "Asia/Manila", month: "short", day: "numeric" })} – ${end.toLocaleDateString("en-PH", { timeZone: "Asia/Manila", month: "short", day: "numeric" })}`,
         borrows: count,
       });
     }
