@@ -16,7 +16,8 @@ const Login = () => {
   const [error, setError]         = useState("");
 
   const handleGoogleLogin = () => {
-    window.location.href = "http://localhost:5000/api/users/auth/google";
+    const backendUrl = import.meta.env.VITE_BACKEND_URL || window.location.origin;
+    window.location.href = `${backendUrl}/api/users/auth/google`;
   };
 
   const handleEmailLogin = async (e) => {
