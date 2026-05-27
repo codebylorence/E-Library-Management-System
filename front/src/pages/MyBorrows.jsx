@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { BookOpen, Clock, CheckCircle, AlertTriangle, ArrowLeft, X, Trash2 } from "lucide-react";
+import { useToast } from "../context/ToastContext";
 import api from "../api/axios";
 import CoverImage from "../components/CoverImage";
 
@@ -19,6 +20,7 @@ const fineMeta = {
 
 const MyBorrows = () => {
   const navigate = useNavigate();
+  const toast = useToast();
   const [borrows, setBorrows]         = useState([]);
   const [loading, setLoading]         = useState(true);
   const [error, setError]             = useState("");
@@ -41,9 +43,10 @@ const MyBorrows = () => {
     try {
       await api.patch(`/borrows/${cancelModal.id}/cancel`);
       setCancelModal(null);
+      toast("Borrow request cancelled.");
       fetchBorrows();
     } catch (err) {
-      alert(err.response?.data?.message || "Failed to cancel request.");
+      toast(err.response?.data?.message || "Failed to cancel request.", "error");
     } finally {
       setCancelling(false);
     }

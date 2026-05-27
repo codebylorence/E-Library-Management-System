@@ -6,6 +6,7 @@ import {
   Tag, Hash, MapPin, Layers, Building, BookCopy, BookPlus, X, Clock,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
+import { useToast } from "../context/ToastContext";
 import api from "../api/axios";
 import CoverImage from "../components/CoverImage";
 
@@ -36,6 +37,7 @@ const BookDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const toast = useToast();
   const [book, setBook]               = useState(null);
   const [loading, setLoading]         = useState(true);
   const [error, setError]             = useState("");
@@ -59,7 +61,7 @@ const BookDetail = () => {
     setShowConfirm(false);
     try {
       await api.post("/borrows", { bookId: id, loanDays });
-      setBorrowMsg({ type: "success", text: "Borrow request submitted! A librarian will approve it when you pick up the book." });
+      toast("Borrow request submitted! A librarian will approve it when you pick up the book.");
       fetchBook();
     } catch (err) {
       const data = err.response?.data;
@@ -69,7 +71,7 @@ const BookDetail = () => {
           text: "You need to log your attendance at the library today before you can borrow a book. Please ask the librarian to scan your QR code.",
         });
       } else {
-        setBorrowMsg({ type: "error", text: data?.message || "Failed to submit borrow request." });
+        toast(data?.message || "Failed to submit borrow request.", "error");
       }
     } finally {
       setBorrowing(false);

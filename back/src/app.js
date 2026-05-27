@@ -7,6 +7,7 @@ import bookRoutes from "./routes/bookRoutes.js"
 import borrowRoutes from "./routes/borrowRoutes.js"
 import attendanceRoutes from "./routes/attendanceRoutes.js"
 import reservationRoutes from "./routes/reservationRoutes.js"
+import settingsRoutes from "./routes/settingsRoutes.js"
 import upload from "./config/upload.js"
 import uploadId from "./config/uploadId.js"
 import uploadPdf from "./config/uploadPdf.js"
@@ -63,6 +64,7 @@ app.use("/api/books", bookRoutes);
 app.use("/api/borrows", borrowRoutes);
 app.use("/api/attendance", attendanceRoutes);
 app.use("/api/reservations", reservationRoutes);
+app.use("/api/settings", settingsRoutes);
 
 app.get("/", (req, res) => {
     res.send("Backend is running");

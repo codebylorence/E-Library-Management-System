@@ -15,7 +15,7 @@ const nowTimeStr = () =>
     hour12: true,
   });
 
-const userAttributes = ["id", "fullName", "email", "studentNumber", "userType", "role", "status"];
+const userAttributes = ["id", "fullName", "email", "studentNumber", "userType", "role", "status", "program"];
 
 /* ── GET /attendance/qr  (student: get own QR code) ─── */
 export const getMyQR = async (req, res) => {
@@ -39,7 +39,61 @@ export const getMyQR = async (req, res) => {
   }
 };
 
-/* ── POST /attendance/scan  (admin/librarian: scan a QR) ─── */
+/* ── POST /attendance/kiosk-scan  (public: PIN-protected kiosk) ─── */
+export const kioskScan = async (req, res) => {
+  try {
+    const { payload, kioskPin } = req.body;
+
+    // Validate PIN server-side — no auth token needed but PIN must match
+    if (!kioskPin || kioskPin !== process.env.KIOSK_PIN) {
+      return res.status(401).json({ message: "Invalid kiosk PIN." });
+    }
+
+    if (!payload) return res.status(400).json({ message: "QR payload is required." });
+
+    let uid;
+    try {
+      const parsed = JSON.parse(payload);
+      uid = parsed.uid;
+    } catch {
+      return res.status(400).json({ message: "Invalid QR code." });
+    }
+
+    if (!uid) return res.status(400).json({ message: "Invalid QR code — missing user ID." });
+
+    const student = await User.findByPk(uid, { attributes: userAttributes });
+    if (!student) return res.status(404).json({ message: "Student not found." });
+
+    if (student.status !== "approved") {
+      return res.status(403).json({ message: "Account not approved." });
+    }
+
+    const date = todayStr();
+    const time = nowTimeStr();
+
+    // 1 attendance per day restriction
+    const existing = await AttendanceRecord.findOne({ where: { userId: uid, date } });
+    if (existing) {
+      return res.status(409).json({
+        message: `${student.fullName} already has attendance recorded for today.`,
+        alreadyRecorded: true,
+        student,
+      });
+    }
+
+    const record = await AttendanceRecord.create({ userId: uid, date, timeIn: time });
+
+    res.status(201).json({
+      message: `Attendance recorded for ${student.fullName}.`,
+      record,
+      student,
+    });
+  } catch (err) {
+    res.status(500).json({ message: "Failed to record attendance.", error: err.message });
+  }
+};
+
+
 export const scanAttendance = async (req, res) => {
   try {
     const { payload } = req.body;

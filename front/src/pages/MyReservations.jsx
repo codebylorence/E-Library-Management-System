@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { CalendarDays, Clock, Users, FileText, Plus, X, CheckCircle, XCircle, AlertCircle, Loader2 } from "lucide-react";
+import { useToast } from "../context/ToastContext";
 import api from "../api/axios";
 
 /* ── Status badge ── */
@@ -49,13 +50,12 @@ const formatDate = (d) =>
 
 /* ══════════════════════════════════════════════ */
 const MyReservations = () => {
+  const toast = useToast();
   const [reservations, setReservations] = useState([]);
   const [loading, setLoading]           = useState(true);
   const [showForm, setShowForm]         = useState(false);
   const [submitting, setSubmitting]     = useState(false);
   const [cancellingId, setCancellingId] = useState(null);
-  const [error, setError]               = useState("");
-  const [success, setSuccess]           = useState("");
 
   const today = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Manila" });
 
@@ -87,17 +87,15 @@ const MyReservations = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError("");
-    setSuccess("");
     setSubmitting(true);
     try {
       await api.post("/reservations", { ...form, attendees: Number(form.attendees) });
-      setSuccess("Reservation submitted! The librarian will review your request.");
+      toast("Reservation submitted! The librarian will review your request.");
       setShowForm(false);
       setForm({ reservationDate: "", startTime: "", endTime: "", purpose: "", attendees: 1 });
       fetchReservations();
     } catch (err) {
-      setError(err.response?.data?.message || "Failed to submit reservation.");
+      toast(err.response?.data?.message || "Failed to submit reservation.", "error");
     } finally {
       setSubmitting(false);
     }
@@ -108,10 +106,10 @@ const MyReservations = () => {
     setCancellingId(id);
     try {
       await api.patch(`/reservations/${id}/cancel`);
-      setSuccess("Reservation cancelled.");
+      toast("Reservation cancelled.");
       fetchReservations();
     } catch (err) {
-      setError(err.response?.data?.message || "Failed to cancel.");
+      toast(err.response?.data?.message || "Failed to cancel.", "error");
     } finally {
       setCancellingId(null);
     }
@@ -131,17 +129,13 @@ const MyReservations = () => {
           <p className="text-sm text-gray-500 mt-1">Reserve the library for classes, meetings, or events.</p>
         </div>
         <button
-          onClick={() => { setShowForm((v) => !v); setError(""); setSuccess(""); }}
+          onClick={() => { setShowForm((v) => !v); }}
           className="flex items-center gap-2 bg-[#227325] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#1a5a1d] transition-colors"
         >
           {showForm ? <X size={16} /> : <Plus size={16} />}
           {showForm ? "Close" : "New Reservation"}
         </button>
       </div>
-
-      {/* Alerts */}
-      {error   && <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-lg">{error}</div>}
-      {success && <div className="bg-green-50 border border-green-200 text-green-700 text-sm px-4 py-3 rounded-lg">{success}</div>}
 
       {/* Reservation Form */}
       {showForm && (

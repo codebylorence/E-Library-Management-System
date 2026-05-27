@@ -1,5 +1,6 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./context/AuthContext";
+import { ToastProvider } from "./context/ToastContext";
 import ProtectedRoute from "./routes/ProtectedRoute";
 import Home from "./pages/Home";
 import Login from "./pages/Login";
@@ -16,12 +17,15 @@ import MyBorrows from "./pages/MyBorrows";
 import MyQR from "./pages/MyQR";
 import MyReservations from "./pages/MyReservations";
 import AdminReservations from "./pages/AdminReservations";
+import Reports from "./pages/Reports";
+import AdminSettings from "./pages/AdminSettings";
 import OAuthCallback from "./pages/OAuthCallback";
 import CreateProfile from "./pages/CreateProfile";
 import BookDetail from "./pages/BookDetail";
 import Unauthorized from "./pages/Unauthorized";
 import GuestCatalogs from "./pages/GuestCatalogs";
 import GuestBookDetail from "./pages/GuestBookDetail";
+import Kiosk from "./pages/Kiosk";
 
 import "./App.css";
 
@@ -38,6 +42,7 @@ const PublicRoute = ({ children }) => {
 function App() {
   return (
     <AuthProvider>
+      <ToastProvider>
       <Routes>
         {/* Public routes — redirect to dashboard if already logged in */}
         <Route path="/" element={<PublicRoute><Home /></PublicRoute>} />
@@ -46,6 +51,7 @@ function App() {
         <Route path="/create-profile" element={<CreateProfile />} />
         <Route path="/guest/catalogs" element={<GuestCatalogs />} />
         <Route path="/guest/books/:id" element={<GuestBookDetail />} />
+        <Route path="/kiosk" element={<Kiosk />} />
 
         {/* Admin / Librarian nested routes */}
         <Route
@@ -63,6 +69,8 @@ function App() {
           <Route path="borrows" element={<AdminBorrows />} />
           <Route path="attendance" element={<AdminAttendance />} />
           <Route path="reservations" element={<AdminReservations />} />
+          <Route path="reports" element={<Reports />} />
+          <Route path="settings" element={<AdminSettings />} />
         </Route>
 
         {/* Student / Faculty / Staff nested routes */}
@@ -89,6 +97,7 @@ function App() {
         {/* Catch-all */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+      </ToastProvider>
     </AuthProvider>
   );
 }

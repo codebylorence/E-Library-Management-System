@@ -83,7 +83,7 @@ export const registerUser = async (req, res) => {
 export const completeProfile = async (req, res) => {
   try {
     const { id } = req.user; // from JWT
-    const { sex, address, mobileNumber, userType, studentNumber } = req.body;
+    const { sex, address, mobileNumber, userType, studentNumber, program } = req.body;
 
     const user = await User.findByPk(id);
     if (!user) return res.status(404).json({ message: "User not found" });
@@ -94,6 +94,7 @@ export const completeProfile = async (req, res) => {
       mobileNumber,
       userType,
       studentNumber: studentNumber || null,
+      program: program || null,
       profileComplete: true,
     });
 
@@ -114,7 +115,7 @@ export const completeProfile = async (req, res) => {
 export const getAllUsers = async (req, res) => {
   try {
     const users = await User.findAll({
-      attributes: ["id", "fullName", "email", "role", "studentNumber", "googleId", "createdAt"],
+      attributes: ["id", "fullName", "email", "role", "studentNumber", "program", "googleId", "createdAt"],
       order: [["createdAt", "DESC"]],
     });
     res.status(200).json({ users });

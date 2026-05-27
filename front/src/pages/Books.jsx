@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useAuth } from "../context/AuthContext";
+import { useToast } from "../context/ToastContext";
 import {
   Search, X, Plus, Trash2, Upload, BookOpen,
   FileText, BookMarked, GraduationCap, Newspaper, Pencil,
@@ -103,6 +104,7 @@ const TypeCard = ({ type, selected, onSelect }) => {
 /* ══════════════════════════════════════════════════ */
 const Books = () => {
   const { user } = useAuth();
+  const toast = useToast();
   const [books, setBooks]         = useState([]);
   const [loading, setLoading]     = useState(true);
   const [error, setError]         = useState("");
@@ -224,8 +226,10 @@ const Books = () => {
 
       if (editBook) {
         await api.put(`/books/${editBook.id}`, payload);
+        toast("Resource updated successfully.");
       } else {
         await api.post("/books", payload);
+        toast("Resource added successfully.");
       }
 
       closeModal();
@@ -250,7 +254,8 @@ const Books = () => {
     try {
       await api.delete(`/books/${id}`);
       setBooks((p) => p.filter((b) => b.id !== id));
-    } catch { alert("Failed to delete."); }
+      toast("Resource deleted.");
+    } catch { toast("Failed to delete.", "error"); }
   };
 
   /* ── filtered list ── */

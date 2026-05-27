@@ -120,8 +120,27 @@ const Home = () => {
   const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
   const [stats, setStats] = useState({ books: 0, users: 0, journals: 0, visitors: 0 });
+  const [settings, setSettings] = useState({
+    hoursMonFri:   "7:30 AM – 5:00 PM",
+    hoursSaturday: "Closed",
+    hoursSunday:   "Closed",
+    address:       "Carmona, Cavite, Philippines",
+    phone:         "(046) 123-4567",
+    email:         "cvsulibrary@cvsu.edu.ph",
+    website:       "https://www.cvsu.edu.ph",
+    facebook:      "",
+    announcement1Title: "Library Hours",
+    announcement1Body:  "Monday – Thursday: 7:30 AM – 5:00 PM. Friday to Sunday: Closed.",
+    announcement2Title: "Book Week Celebration",
+    announcement2Body:  "Join us for our annual Book Week! Activities include reading contests, book exhibits, and author talks.",
+    announcement3Title: "System Maintenance",
+    announcement3Body:  "The e-library system will undergo scheduled maintenance every Sunday from 12:00 AM – 4:00 AM.",
+  });
 
   useEffect(() => {
+    // Fetch public settings
+    api.get("/settings").then(({ data }) => setSettings(data.settings)).catch(() => {});
+
     // Only fetch books publicly — skip protected endpoints to avoid 401 loops
     api.get("/books")
       .then(b => setStats(prev => ({
@@ -305,9 +324,9 @@ const Home = () => {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
             {[
-              { tag: "Schedule",    color: "bg-blue-100 text-blue-700",   title: "Library Hours",              body: "Monday – Friday: 7:30 AM – 5:00 PM. Saturday: 8:00 AM – 12:00 PM. Closed on Sundays and holidays." },
-              { tag: "Event",       color: "bg-green-100 text-green-700", title: "Book Week Celebration",      body: "Join us for our annual Book Week! Activities include reading contests, book exhibits, and author talks." },
-              { tag: "Notice",      color: "bg-yellow-100 text-yellow-700",title: "System Maintenance",        body: "The e-library system will undergo scheduled maintenance every Sunday from 12:00 AM – 4:00 AM." },
+              { tag: "Schedule", color: "bg-blue-100 text-blue-700",    title: settings.announcement1Title, body: settings.announcement1Body },
+              { tag: "Event",    color: "bg-green-100 text-green-700",  title: settings.announcement2Title, body: settings.announcement2Body },
+              { tag: "Notice",   color: "bg-yellow-100 text-yellow-700",title: settings.announcement3Title, body: settings.announcement3Body },
             ].map(({ tag, color, title, body }) => (
               <div key={title} className="bg-gray-50 rounded-2xl p-6 border border-gray-100 hover:shadow-md transition-all">
                 <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${color} mb-3 inline-block`}>{tag}</span>
@@ -392,28 +411,42 @@ const Home = () => {
           <div>
             <p className="text-white font-bold text-sm mb-4">Library Hours</p>
             <ul className="space-y-2 text-xs">
-              <li className="flex justify-between"><span>Mon – Fri</span><span className="text-white">7:30 AM – 5:00 PM</span></li>
-              <li className="flex justify-between"><span>Saturday</span><span className="text-white">8:00 AM – 12:00 PM</span></li>
-              <li className="flex justify-between"><span>Sunday</span><span className="text-red-400">Closed</span></li>
+              <li className="flex justify-between"><span>Mon – Thu</span><span className="text-white">{settings.hoursMonFri}</span></li>
+              <li className="flex justify-between"><span>Saturday</span><span className={settings.hoursSaturday?.toLowerCase() === "closed" ? "text-red-400" : "text-white"}>{settings.hoursSaturday}</span></li>
+              <li className="flex justify-between"><span>Sunday</span><span className={settings.hoursSunday?.toLowerCase() === "closed" ? "text-red-400" : "text-white"}>{settings.hoursSunday}</span></li>
             </ul>
           </div>
           <div>
             <p className="text-white font-bold text-sm mb-4">Contact Us</p>
             <ul className="space-y-3 text-xs">
-              <li className="flex items-start gap-2"><MapPin size={13} className="text-green-400 mt-0.5 shrink-0" /><span>Carmona, Cavite, Philippines</span></li>
-              <li className="flex items-center gap-2"><Phone size={13} className="text-green-400 shrink-0" /><span>(046) 123-4567</span></li>
-              <li className="flex items-center gap-2"><Mail size={13} className="text-green-400 shrink-0" /><span>cvsulibrary@cvsu.edu.ph</span></li>
+              <li className="flex items-start gap-2"><MapPin size={13} className="text-green-400 mt-0.5 shrink-0" /><span>{settings.address}</span></li>
+              <li className="flex items-center gap-2"><Phone size={13} className="text-green-400 shrink-0" /><span>{settings.phone}</span></li>
+              <li className="flex items-center gap-2"><Mail size={13} className="text-green-400 shrink-0" /><span>{settings.email}</span></li>
             </ul>
             <div className="flex gap-3 mt-4">
-              {[
-                { Icon: ExternalLink, label: "Website" },
-                { Icon: Mail,         label: "Email"   },
-                { Icon: Phone,        label: "Phone"   },
-              ].map(({ Icon, label }) => (
-                <button key={label} title={label} className="p-2 bg-white/5 hover:bg-green-500/20 rounded-lg transition-colors">
-                  <Icon size={15} className="text-gray-400 hover:text-green-400" />
-                </button>
-              ))}
+              {settings.website && (
+                <a href={settings.website} target="_blank" rel="noreferrer" title="Website" className="p-2 bg-white/5 hover:bg-green-500/20 rounded-lg transition-colors">
+                  <ExternalLink size={15} className="text-gray-400 hover:text-green-400" />
+                </a>
+              )}
+              {settings.email && (
+                <a href={`mailto:${settings.email}`} title="Email" className="p-2 bg-white/5 hover:bg-green-500/20 rounded-lg transition-colors">
+                  <Mail size={15} className="text-gray-400 hover:text-green-400" />
+                </a>
+              )}
+              {settings.phone && (
+                <a href={`tel:${settings.phone}`} title="Phone" className="p-2 bg-white/5 hover:bg-green-500/20 rounded-lg transition-colors">
+                  <Phone size={15} className="text-gray-400 hover:text-green-400" />
+                </a>
+              )}
+              {settings.facebook && (
+                <a href={settings.facebook} target="_blank" rel="noreferrer" title="Facebook" className="p-2 bg-white/5 hover:bg-green-500/20 rounded-lg transition-colors">
+                  {/* Facebook SVG logo */}
+                  <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="currentColor" className="text-gray-400 hover:text-green-400">
+                    <path d="M24 12.073C24 5.405 18.627 0 12 0S0 5.405 0 12.073C0 18.1 4.388 23.094 10.125 24v-8.437H7.078v-3.49h3.047V9.41c0-3.025 1.792-4.697 4.533-4.697 1.312 0 2.686.236 2.686.236v2.97h-1.513c-1.491 0-1.956.93-1.956 1.886v2.267h3.328l-.532 3.49h-2.796V24C19.612 23.094 24 18.1 24 12.073z"/>
+                  </svg>
+                </a>
+              )}
             </div>
           </div>
         </div>
