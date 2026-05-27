@@ -4,10 +4,9 @@
   "description": "CvSU Carmona E-Library Management System",
   "scripts": {
     "install:all": "npm install --prefix back && npm install --prefix front",
-    "build": "npm run build --prefix front",
+    "build": "npm install --prefix back && npm install --prefix front && npm run build --prefix front",
     "start": "node back/server.js",
-    "dev:back": "npm run dev --prefix back",
-    "dev:front": "npm run dev --prefix front"
+    "dev": "node back/server.js"
   },
   "engines": {
     "node": ">=18.0.0"
