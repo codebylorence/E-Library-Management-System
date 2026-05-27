@@ -5,15 +5,10 @@ import timeGridPlugin from "@fullcalendar/timegrid";
 import listPlugin from "@fullcalendar/list";
 import interactionPlugin from "@fullcalendar/interaction";
 import {
-  CalendarDays,
-  Clock,
-  Users,
-  FileText,
-  CheckCircle,
-  XCircle,
-  Loader2,
-  X,
+  CalendarDays, Clock, Users, FileText,
+  CheckCircle, XCircle, Loader2, X,
 } from "lucide-react";
+import { useToast } from "../context/ToastContext";
 import api from "../api/axios";
 
 /* ─── helpers ──────────────────────────────────────────────── */
@@ -174,13 +169,13 @@ const DetailModal = ({ reservation: r, onClose, onApprove, onReject, actionLoadi
 /* ─── Main Page ────────────────────────────────────────────── */
 const AdminReservations = () => {
   const calendarRef = useRef(null);
+  const toast = useToast();
 
   const [reservations,  setReservations]  = useState([]);
   const [stats,         setStats]         = useState(null);
   const [loading,       setLoading]       = useState(true);
   const [selected,      setSelected]      = useState(null);
   const [actionLoading, setActionLoading] = useState(false);
-  const [toast,         setToast]         = useState({ msg: "", type: "success" });
 
   /* fetch all reservations (no month filter — FullCalendar handles navigation) */
   const fetchData = useCallback(async () => {
@@ -201,14 +196,7 @@ const AdminReservations = () => {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  /* auto-dismiss toast */
-  useEffect(() => {
-    if (!toast.msg) return;
-    const t = setTimeout(() => setToast({ msg: "", type: "success" }), 3000);
-    return () => clearTimeout(t);
-  }, [toast]);
-
-  const showToast = (msg, type = "success") => setToast({ msg, type });
+  const showToast = (msg, type = "success") => toast(msg, type);
 
   /* approve */
   const handleApprove = async (id, note) => {
@@ -260,17 +248,6 @@ const AdminReservations = () => {
 
   return (
     <div className="p-6 space-y-6 max-w-7xl mx-auto">
-      {/* Toast */}
-      {toast.msg && (
-        <div className={`fixed top-5 right-5 z-50 text-sm px-4 py-3 rounded-xl shadow-lg ${
-          toast.type === "error"
-            ? "bg-red-600 text-white"
-            : "bg-gray-800 text-white"
-        }`}>
-          {toast.msg}
-        </div>
-      )}
-
       {/* Detail Modal */}
       <DetailModal
         reservation={selected}

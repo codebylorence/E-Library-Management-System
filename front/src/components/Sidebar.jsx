@@ -13,6 +13,8 @@ import {
   QrCode,
   ClipboardList,
   CalendarDays,
+  FileBarChart2,
+  Settings,
 } from "lucide-react";
 
 // Nav items per role
@@ -23,7 +25,9 @@ const NAV_ITEMS = {
     { label: "Borrows",       icon: BookMarked,      to: "/admin/borrows"        },
     { label: "Attendance",    icon: ClipboardList,   to: "/admin/attendance"     },
     { label: "Reservations",  icon: CalendarDays,    to: "/admin/reservations"   },
+    { label: "Reports",       icon: FileBarChart2,   to: "/admin/reports"        },
     { label: "Users",         icon: Users,           to: "/admin/users"          },
+    { label: "Settings",      icon: Settings,        to: "/admin/settings"       },
   ],
   librarian: [
     { label: "Dashboard",     icon: LayoutDashboard, to: "/admin/dashboard"      },
@@ -31,6 +35,7 @@ const NAV_ITEMS = {
     { label: "Borrows",       icon: BookMarked,      to: "/admin/borrows"        },
     { label: "Attendance",    icon: ClipboardList,   to: "/admin/attendance"     },
     { label: "Reservations",  icon: CalendarDays,    to: "/admin/reservations"   },
+    { label: "Reports",       icon: FileBarChart2,   to: "/admin/reports"        },
   ],
   student: [
     { label: "Dashboard",  icon: LayoutDashboard, to: "/student/dashboard"  },

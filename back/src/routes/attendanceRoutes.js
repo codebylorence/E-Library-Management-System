@@ -2,6 +2,7 @@ import express from "express";
 import {
   getMyQR,
   scanAttendance,
+  kioskScan,
   getAllAttendance,
   getAttendanceStats,
   getAttendanceChartData,
@@ -23,6 +24,9 @@ router.get("/", authMiddleware, roleMiddleware("admin", "librarian"), getAllAtte
 
 // Admin/Librarian: process a QR scan
 router.post("/scan", authMiddleware, roleMiddleware("admin", "librarian"), scanAttendance);
+
+// Public kiosk scan — no auth, PIN-protected server-side
+router.post("/kiosk-scan", kioskScan);
 
 // Student: get own QR code
 router.get("/qr", authMiddleware, getMyQR);

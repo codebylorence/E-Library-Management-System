@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useAuth } from "../context/AuthContext";
+import { useToast } from "../context/ToastContext";
 import { Search, X, Trash2, ShieldCheck, GraduationCap, BookUser, UserCog } from "lucide-react";
 import api from "../api/axios";
 import IconBtn from "../components/IconBtn";
@@ -24,6 +25,7 @@ const roleIcon = (role) => {
 /* ══════════════════════════════════════════════ */
 const Users = () => {
   const { user: currentUser } = useAuth();
+  const toast = useToast();
   const [users, setUsers]           = useState([]);
   const [loading, setLoading]       = useState(true);
   const [error, setError]           = useState("");
@@ -54,8 +56,9 @@ const Users = () => {
       await api.delete(`/users/${deleteTarget.id}`);
       setUsers((prev) => prev.filter((u) => u.id !== deleteTarget.id));
       setDeleteTarget(null);
+      toast("User deleted successfully.");
     } catch {
-      alert("Failed to delete user.");
+      toast("Failed to delete user.", "error");
     }
   };
 
@@ -76,8 +79,9 @@ const Users = () => {
         prev.map((u) => u.id === roleTarget.id ? { ...u, role: selectedRole } : u)
       );
       setRoleTarget(null);
+      toast(`Role updated to ${selectedRole}.`);
     } catch (err) {
-      alert(err.response?.data?.message || "Failed to update role.");
+      toast(err.response?.data?.message || "Failed to update role.", "error");
     } finally {
       setRoleLoading(false);
     }
@@ -158,6 +162,7 @@ const Users = () => {
                   <th className="px-4 py-3">Full Name</th>
                   <th className="px-4 py-3">Email</th>
                   <th className="px-4 py-3">Student No.</th>
+                  <th className="px-4 py-3">Program</th>
                   <th className="px-4 py-3">Role</th>
                   <th className="px-4 py-3">Registered</th>
                   {currentUser?.role === "admin" && <th className="px-4 py-3">Actions</th>}
@@ -171,6 +176,9 @@ const Users = () => {
                     <td className="px-4 py-3 text-gray-600">{u.email}</td>
                     <td className="px-4 py-3 text-gray-600">
                       {u.studentNumber ?? <span className="text-gray-300">—</span>}
+                    </td>
+                    <td className="px-4 py-3 text-gray-600">
+                      {u.program ?? <span className="text-gray-300">—</span>}
                     </td>
                     <td className="px-4 py-3">
                       <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${roleBadge(u.role)}`}>

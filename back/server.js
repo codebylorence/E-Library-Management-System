@@ -5,6 +5,7 @@ import Book from "./src/models/Book.js";
 import BorrowRecord from "./src/models/BorrowRecord.js";
 import AttendanceRecord from "./src/models/AttendanceRecord.js";
 import ReservationRecord from "./src/models/ReservationRecord.js";
+import LibrarySettings from "./src/models/LibrarySettings.js";
 import seedAdmin from "./src/config/seedAdmin.js";
 
 const PORT = process.env.PORT;
@@ -56,6 +57,20 @@ sequelize.sync({ alter: shouldAlter })
     } catch {
       // Column already correct or table doesn't exist yet, ignore
     }
+
+    // Add program column to Users if missing
+    try {
+      await sequelize.query("ALTER TABLE `Users` ADD COLUMN `program` VARCHAR(255) NULL;");
+    } catch {
+      // Already exists, ignore
+    }
+
+    // Seed default LibrarySettings row if missing
+    try {
+      const { default: LibrarySettings } = await import("./src/models/LibrarySettings.js");
+      const existing = await LibrarySettings.findByPk(1);
+      if (!existing) await LibrarySettings.create({ id: 1 });
+    } catch { /* ignore */ }
 
     await seedAdmin();
 

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { CheckCircle, XCircle, Home, ChevronRight } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
+import { useToast } from "../context/ToastContext";
 import api from "../api/axios";
 import cvsulogo from "../assets/CvSU-Logo.webp";
 
@@ -66,12 +67,13 @@ const inputBase = (err, ok) =>
 const CreateProfile = () => {
   const { user, setUserFromOAuth } = useAuth();
   const navigate = useNavigate();
+  const toast = useToast();
   const [step, setStep] = useState(1);
   const [consent, setConsent] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   const [form, setForm] = useState({
-    sex: "", address: "", mobileNumber: "", userType: "", studentNumber: "",
+    sex: "", address: "", mobileNumber: "", userType: "", studentNumber: "", program: "",
   });
   const [touched, setTouched] = useState({});
 
@@ -89,6 +91,8 @@ const CreateProfile = () => {
       ? "Enter a valid 10-digit number (e.g. 9208826429)"
       : "",
     userType:     !form.userType ? "User Type is required!" : "",
+    program:      form.userType === "Student" && !form.program.trim()
+      ? "Program is required for students!" : "",
     studentNumber: form.userType === "Student" && !form.studentNumber.trim()
       ? "Student Number is required!" : "",
   };
@@ -97,7 +101,7 @@ const CreateProfile = () => {
   const hasError = (f) => touched[f] && !!errors[f];
 
   const step2Valid = !errors.sex && !errors.address && !errors.mobileNumber;
-  const step3Valid = !errors.userType;
+  const step3Valid = !errors.userType && !errors.program;
   const step4Valid = !errors.studentNumber;
 
   const canNext = () => {
@@ -118,13 +122,14 @@ const CreateProfile = () => {
         mobileNumber: `+63${form.mobileNumber}`,
         userType: form.userType,
         studentNumber: form.studentNumber || null,
+        program: form.program || null,
       });
       const updatedUser = { ...user, ...data.user };
       localStorage.setItem("user", JSON.stringify(updatedUser));
       setUserFromOAuth(token, updatedUser);
       navigate("/student/dashboard", { replace: true });
     } catch (err) {
-      alert(err.response?.data?.message || "Failed to save profile. Please try again.");
+      toast(err.response?.data?.message || "Failed to save profile. Please try again.", "error");
     } finally {
       setSubmitting(false);
     }
@@ -261,6 +266,33 @@ const CreateProfile = () => {
                 {hasError("userType") && <XCircle    size={15} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-red-400 pointer-events-none" />}
               </div>
             </Field>
+
+            {/* Program — only required for students */}
+            {form.userType === "Student" && (
+              <Field label="Program" error={hasError("program") ? errors.program : ""} valid={isValid("program")}>
+                <div className="relative">
+                  <select
+                    value={form.program}
+                    onChange={(e) => set("program", e.target.value)}
+                    className={inputBase(hasError("program"), isValid("program"))}
+                  >
+                    <option value="">Select your program...</option>
+                    <option>Bachelor of Science in Computer Science (BSCS)</option>
+                    <option>Bachelor of Science in Information Technology (BSIT)</option>
+                    <option>Bachelor of Science in Computer Engineering (BSCpE)</option>
+                    <option>Bachelor of Science in Business Administration - Marketing Management (BSBA-MM)</option>
+                    <option>Bachelor of Science in Business Administration - Human Resource Management (BSBA-HRM)</option>
+                    <option>Bachelor of Science in Hospitality Management (BSHM)</option>
+                    <option>Bachelor of Science in Industrial Technology (BSIndT)</option>
+                    <option>Bachelor of Secondary Education - English (BSEd-English)</option>
+                    <option>Bachelor of Secondary Education - Math (BSEd-Math)</option>
+                    <option>Bachelor of Secondary Education - Science (BSEd-Science)</option>
+                  </select>
+                  {isValid("program")  && <CheckCircle size={15} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-green-500 pointer-events-none" />}
+                  {hasError("program") && <XCircle    size={15} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-red-400 pointer-events-none" />}
+                </div>
+              </Field>
+            )}
           </div>
         );
 
@@ -295,6 +327,10 @@ const CreateProfile = () => {
                 <span className="text-gray-400 font-medium">Address</span>      <span className="text-gray-800">{form.address}</span>
                 <span className="text-gray-400 font-medium">Mobile</span>       <span className="text-gray-800">+63{form.mobileNumber}</span>
                 <span className="text-gray-400 font-medium">User Type</span>    <span className="text-gray-800">{form.userType}</span>
+                {form.program && <>
+                  <span className="text-gray-400 font-medium">Program</span>
+                  <span className="text-gray-800">{form.program}</span>
+                </>}
                 {form.studentNumber && <>
                   <span className="text-gray-400 font-medium">{form.userType === "Student" ? "Student No." : "Employee ID"}</span>
                   <span className="text-gray-800">{form.studentNumber}</span>

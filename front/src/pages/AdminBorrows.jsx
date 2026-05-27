@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { Search, X, Clock, AlertTriangle, CheckCircle, PhilippinePeso, BookPlus, Zap, ChevronDown } from "lucide-react";
+import { useToast } from "../context/ToastContext";
 import api from "../api/axios";
 import CoverImage from "../components/CoverImage";
 
@@ -12,6 +13,7 @@ const statusMeta = {
 };
 
 const AdminBorrows = () => {
+  const toast = useToast();
   const [borrows, setBorrows]   = useState([]);
   const [stats, setStats]       = useState(null);
   const [loading, setLoading]   = useState(true);
@@ -132,6 +134,7 @@ const AdminBorrows = () => {
         userId: Number(qbForm.userId),
       });
       setShowQuickBorrow(false);
+      toast("Quick borrow recorded successfully.");
       fetchData();
     } catch (err) {
       setQbError(err.response?.data?.message || "Quick borrow failed.");
@@ -144,9 +147,10 @@ const AdminBorrows = () => {
     setActionLoading(id + "approve");
     try {
       await api.patch(`/borrows/${id}/approve`);
+      toast("Borrow request approved.");
       fetchData();
     } catch (err) {
-      alert(err.response?.data?.message || "Failed to approve.");
+      toast(err.response?.data?.message || "Failed to approve.", "error");
     } finally {
       setActionLoading(null);
     }
@@ -159,9 +163,10 @@ const AdminBorrows = () => {
       await api.patch(`/borrows/${rejectModal.id}/reject`, { note: rejectNote });
       setRejectModal(null);
       setRejectNote("");
+      toast("Borrow request rejected.");
       fetchData();
     } catch (err) {
-      alert(err.response?.data?.message || "Failed to reject.");
+      toast(err.response?.data?.message || "Failed to reject.", "error");
     } finally {
       setActionLoading(null);
     }
@@ -172,9 +177,10 @@ const AdminBorrows = () => {
     setActionLoading(id + "return");
     try {
       await api.patch(`/borrows/${id}/return`);
+      toast("Book returned successfully.");
       fetchData();
     } catch (err) {
-      alert(err.response?.data?.message || "Failed to process return.");
+      toast(err.response?.data?.message || "Failed to process return.", "error");
     } finally {
       setActionLoading(null);
     }
@@ -185,9 +191,10 @@ const AdminBorrows = () => {
     setActionLoading(id + "pay");
     try {
       await api.patch(`/borrows/${id}/pay-fine`);
+      toast("Fine marked as paid.");
       fetchData();
     } catch (err) {
-      alert(err.response?.data?.message || "Failed to mark fine as paid.");
+      toast(err.response?.data?.message || "Failed to mark fine as paid.", "error");
     } finally {
       setActionLoading(null);
     }

@@ -67,6 +67,11 @@ const User = sequelize.define("User", {
     unique: false, // unique index already exists in DB, managed manually
   },
 
+  program: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
+
   profileComplete: {
     type: DataTypes.BOOLEAN,
     defaultValue: false,
