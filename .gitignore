@@ -1,0 +1,29 @@
+# Dependencies
+node_modules/
+back/node_modules/
+front/node_modules/
+
+# Environment variables — NEVER commit these
+back/.env
+front/.env
+front/.env.local
+front/.env.production
+
+# Build output
+front/dist/
+
+# Uploads (user-generated files — store on cloud storage in production)
+back/uploads/covers/*
+back/uploads/pdfs/*
+back/uploads/ids/*
+!back/uploads/covers/.gitkeep
+!back/uploads/pdfs/.gitkeep
+!back/uploads/ids/.gitkeep
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*

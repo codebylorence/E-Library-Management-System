@@ -1,0 +1,15 @@
+{
+  "name": "e-library-management-system",
+  "version": "1.0.0",
+  "description": "CvSU Carmona E-Library Management System",
+  "scripts": {
+    "install:all": "npm install --prefix back && npm install --prefix front",
+    "build": "npm run build --prefix front",
+    "start": "node back/server.js",
+    "dev:back": "npm run dev --prefix back",
+    "dev:front": "npm run dev --prefix front"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

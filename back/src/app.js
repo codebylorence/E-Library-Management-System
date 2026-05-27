@@ -19,7 +19,9 @@ const __dirname = path.dirname(__filename);
 const app = express();
 
 app.use(cors({
-  origin: ["http://localhost:5173", "http://localhost:4173"],
+  origin: process.env.FRONTEND_URL
+    ? process.env.FRONTEND_URL.split(",").map((u) => u.trim())
+    : ["http://localhost:5173", "http://localhost:4173"],
   credentials: true,
 }));
 app.use(express.json());
@@ -66,8 +68,18 @@ app.use("/api/attendance", attendanceRoutes);
 app.use("/api/reservations", reservationRoutes);
 app.use("/api/settings", settingsRoutes);
 
-app.get("/", (req, res) => {
+// In production, serve the built React frontend
+if (process.env.NODE_ENV === "production") {
+  const frontDist = path.join(__dirname, "../../front/dist");
+  app.use(express.static(frontDist));
+  // All non-API routes → React app
+  app.get(/^(?!\/api|\/uploads).*/, (req, res) => {
+    res.sendFile(path.join(frontDist, "index.html"));
+  });
+} else {
+  app.get("/", (req, res) => {
     res.send("Backend is running");
-});
+  });
+}
 
 export default app;

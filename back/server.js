@@ -1,69 +1,23 @@
+import "./src/config/env.js"; // load .env first before any other imports
 import app from "./src/app.js";
 import sequelize from "./src/config/database.js";
-import User from "./src/models/User.js";
-import Book from "./src/models/Book.js";
-import BorrowRecord from "./src/models/BorrowRecord.js";
-import AttendanceRecord from "./src/models/AttendanceRecord.js";
-import ReservationRecord from "./src/models/ReservationRecord.js";
-import LibrarySettings from "./src/models/LibrarySettings.js";
+
+// Import all models so Sequelize registers them before sync
+import "./src/models/User.js";
+import "./src/models/Book.js";
+import "./src/models/BorrowRecord.js";
+import "./src/models/AttendanceRecord.js";
+import "./src/models/ReservationRecord.js";
+import "./src/models/LibrarySettings.js";
+
 import seedAdmin from "./src/config/seedAdmin.js";
 
-const PORT = process.env.PORT;
+const PORT = process.env.PORT || 5000;
 const shouldAlter = process.env.DB_SYNC_ALTER === "true";
 
 sequelize.sync({ alter: shouldAlter })
   .then(async () => {
     console.log(`Database synced ✅ ${shouldAlter ? "(alter mode)" : ""}`);
-
-    // Add quick borrow inline fields to BorrowRecords if missing
-    try {
-      await sequelize.query("ALTER TABLE `BorrowRecords` MODIFY COLUMN `bookId` INT NULL;");
-    } catch { /* already nullable */ }
-    for (const col of [
-      "ADD COLUMN `qbTitle` VARCHAR(255) NULL",
-      "ADD COLUMN `qbAuthor` VARCHAR(255) NULL",
-      "ADD COLUMN `qbIsbn` VARCHAR(255) NULL",
-      "ADD COLUMN `qbCategory` VARCHAR(255) NULL",
-      "ADD COLUMN `qbPublisher` VARCHAR(255) NULL",
-      "ADD COLUMN `qbShelfLocation` VARCHAR(255) NULL",
-      "ADD COLUMN `qbPublishedYear` INT NULL",
-    ]) {
-      try { await sequelize.query(`ALTER TABLE \`BorrowRecords\` ${col};`); } catch { /* already exists */ }
-    }
-
-    // Ensure role ENUM includes faculty and staff
-    try {
-      await sequelize.query(
-        "ALTER TABLE `Users` MODIFY COLUMN `role` ENUM('admin','librarian','student','faculty','staff') NOT NULL DEFAULT 'student';"
-      );
-    } catch {
-      // Already correct, ignore
-    }
-
-    // Ensure materialType ENUM has all resource type values
-    try {
-      await sequelize.query(
-        "ALTER TABLE `Books` MODIFY COLUMN `materialType` ENUM('Library Books', 'E-Books', 'E-Journals', 'Thesis / Dissertation', 'Magazine / Article') NOT NULL DEFAULT 'Library Books';"
-      );
-    } catch {
-      // Column already correct, ignore
-    }
-
-    // Ensure AttendanceRecords.timeIn is VARCHAR (was TIME, changed to store 12-hour format)
-    try {
-      await sequelize.query(
-        "ALTER TABLE `AttendanceRecords` MODIFY COLUMN `timeIn` VARCHAR(20) NOT NULL;"
-      );
-    } catch {
-      // Column already correct or table doesn't exist yet, ignore
-    }
-
-    // Add program column to Users if missing
-    try {
-      await sequelize.query("ALTER TABLE `Users` ADD COLUMN `program` VARCHAR(255) NULL;");
-    } catch {
-      // Already exists, ignore
-    }
 
     // Seed default LibrarySettings row if missing
     try {
@@ -80,6 +34,5 @@ sequelize.sync({ alter: shouldAlter })
   })
   .catch((err) => {
     console.error("Error syncing database ❌", err);
+    process.exit(1);
   });
-
-  
