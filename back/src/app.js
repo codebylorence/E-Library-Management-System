@@ -20,7 +20,7 @@ const app = express();
 
 app.use(cors({
   origin: process.env.FRONTEND_URL
-    ? process.env.FRONTEND_URL.split(",").map((u) => u.trim())
+    ? process.env.FRONTEND_URL.split(",").map((u) => u.trim().replace(/\/$/, ""))
     : ["http://localhost:5173", "http://localhost:4173"],
   credentials: true,
 }));
