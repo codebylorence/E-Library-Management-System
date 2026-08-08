@@ -82,47 +82,6 @@ const Login = () => {
           <div className="flex-1 h-px bg-gray-200" />
         </div>
 
-        {/* Email/password toggle */}
-        {!showEmail ? (
-          <button
-            onClick={() => setShowEmail(true)}
-            className="w-full border border-gray-200 rounded-lg px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors shadow-sm"
-          >
-            Sign in with Email
-          </button>
-        ) : (
-          <form onSubmit={handleEmailLogin} className="flex flex-col gap-2">
-            {error && (
-              <p className="text-xs text-red-500 text-center bg-red-50 border border-red-200 rounded-lg px-3 py-2">
-                {error}
-              </p>
-            )}
-            <input
-              type="email"
-              placeholder="Email address"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              className="w-full border border-gray-200 rounded-lg px-4 py-3 text-sm outline-none focus:border-[#227325] transition-colors"
-            />
-            <input
-              type="password"
-              placeholder="Password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              className="w-full border border-gray-200 rounded-lg px-4 py-3 text-sm outline-none focus:border-[#227325] transition-colors"
-            />
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-[#227325] hover:bg-[#1a5c1d] text-white rounded-lg px-4 py-3 text-sm font-semibold transition-colors disabled:opacity-60"
-            >
-              {loading ? "Signing in..." : "Sign In"}
-            </button>
-          </form>
-        )}
-
         {/* Guest */}
         <button
           onClick={() => navigate("/guest/catalogs")}
